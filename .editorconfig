@@ -1,0 +1,33 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
+
+[*.ps1]
+# 注意：Windows PowerShell 5.1 会把无 BOM 的 UTF-8 当 GBK 解码，导致假语法错误。
+# 保留 BOM 是硬要求；scripts/fix-bom.ps1 可修复被编辑器剥掉的 BOM。
+charset = utf-8-bom
+end_of_line = crlf
+indent_size = 2
+
+[*.psm1]
+charset = utf-8-bom
+end_of_line = crlf
+
+[*.psd1]
+charset = utf-8-bom
+end_of_line = crlf
+
+[*.md]
+trim_trailing_whitespace = false
+
+[*.json]
+indent_size = 2
+
+[*.yml]
+indent_size = 2

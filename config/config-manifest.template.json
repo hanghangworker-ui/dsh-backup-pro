@@ -1,0 +1,79 @@
+{
+  "version": 1,
+  "comment": "【模板】dsh 配置保护清单。deploy.ps1 会按本机实际情况自动生成同名文件；手工部署时复制本文件为 config-manifest.json 并改 dshHome / vault / referenceTag 三处必填项。known = 已确认存在且必须保护；pending = 本机暂缺（出现后自动纳入）；removed = 已核实 dsh 不用，脚本跳过。",
+  "dshHome": "(待补充：dsh 配置根目录，如 D:\\dsh-home 或 C:\\Users\\<you>\\.dsh)",
+  "vault": "(待补充：本库根目录，即解压后 备份机制第二版 的绝对路径)",
+  "keep": 20,
+  "logKeep": 50,
+  "include": [
+    {
+      "path": "prompt-inject.md",
+      "kind": "file",
+      "status": "pending",
+      "note": "purge 注入文件；purge_apply 会写入"
+    },
+    {
+      "path": ".agent-presets",
+      "kind": "dir",
+      "status": "pending",
+      "note": "含 unrestricted/agent.cordis.yml；首行为 managed-by: dsh-purge，删掉该行可阻止插件覆盖"
+    },
+    {
+      "path": "whale-roles",
+      "kind": "dir",
+      "status": "pending",
+      "note": "roles.json 角色配置"
+    },
+    {
+      "path": "profiles/web/cordis.patch.yml",
+      "kind": "file",
+      "status": "pending",
+      "note": "profile patch 层，用户真实配置主体"
+    },
+    {
+      "path": "profiles/web/cordis.yml",
+      "kind": "file",
+      "status": "pending",
+      "note": "profile 根，注释声明不要改，仍需保护"
+    },
+    {
+      "path": "profiles/web/package.json",
+      "kind": "file",
+      "status": "pending",
+      "note": "插件清单，dsh-purge-community 版本锁定在此"
+    },
+    {
+      "path": "dsh-purge/update-preferences.json",
+      "kind": "file",
+      "status": "pending",
+      "note": "purge 自更新开关"
+    },
+    {
+      "path": "skills",
+      "kind": "dir",
+      "status": "pending",
+      "note": "skills 根目录"
+    }
+  ],
+  "aclDeny": [
+    "prompt-inject.md",
+    ".agent-presets/unrestricted/agent.cordis.yml"
+  ],
+  "referenceTag": "baseline",
+  "protectedTags": [
+    "baseline.*",
+    "after-.*",
+    "post-.*",
+    "pre-session-copy-.*",
+    "probe-.*",
+    "pre-restore-.*"
+  ],
+  "expectedWarn": [
+    "scheduled-task",
+    "pending-post",
+    "gate-unused",
+    "optional-asset",
+    "acl-off",
+    "pending-item"
+  ]
+}

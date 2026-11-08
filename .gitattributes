@@ -1,0 +1,25 @@
+# Behavior of this repository
+
+# 1. 换行归一：仓库内一律 LF，工作区按平台还原。
+* text=auto
+
+# 2. PowerShell：Windows 下 CRLF；不要做 working-tree-encoding，BOM 由 fix-bom.ps1 / CI 保证。
+*.ps1   text eol=crlf
+*.psm1  text eol=crlf
+*.psd1  text eol=crlf
+
+# 3. 文档与配置：LF。
+*.md    text eol=lf
+*.json  text eol=lf
+*.yml   text eol=lf
+*.yaml  text eol=lf
+
+# 4. 二进制/压缩：不参与文本转换。
+*.zip   binary
+*.7z    binary
+*.png   binary
+*.jpg   binary
+
+# 5. 运行时状态绝不入库（双保险：.gitignore 已排除，这里再标为二进制避免 diff 噪音）。
+snap/**    -text
+state/**   -text

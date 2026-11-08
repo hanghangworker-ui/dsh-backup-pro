@@ -1,0 +1,107 @@
+name: ci
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  scripts:
+    name: BOM + parse check (windows-latest)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show environment
+        shell: pwsh
+        run: |
+          $PSVersionTable | Out-String | Write-Host
+          (Get-Command powershell.exe).Source
+
+      - name: Every .ps1/.psm1/.psd1 must be UTF-8 with BOM
+        shell: pwsh
+        run: |
+          $bad = @()
+          Get-ChildItem -Recurse -File -Include *.ps1,*.psm1,*.psd1 | ForEach-Object {
+            $fs = [System.IO.File]::OpenRead($_.FullName)
+            try {
+              $b = New-Object byte[] 3
+              [void]$fs.Read($b, 0, 3)
+            } finally { $fs.Dispose() }
+            if (-not ($b[0] -eq 0xEF -and $b[1] -eq 0xBB -and $b[2] -eq 0xBF)) { $bad += $_.FullName }
+          }
+          if ($bad.Count -gt 0) {
+            $bad | ForEach-Object { Write-Host "::error file=$_::missing UTF-8 BOM (PowerShell 5.1 will read it as GBK)" }
+            exit 1
+          }
+          Write-Host "OK: all scripts carry UTF-8 BOM"
+
+      - name: Parse with PowerShell 7 (pwsh)
+        shell: pwsh
+        run: |
+          $fail = 0
+          Get-ChildItem -Recurse -File -Include *.ps1,*.psm1,*.psd1 | ForEach-Object {
+            $errs = $null
+            [void][System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$null, [ref]$errs)
+            if ($errs.Count -gt 0) {
+              $fail++
+              Write-Host "::error file=$($_.FullName)::$($errs.Count) parse error(s); first: L$($errs[0].Extent.StartLineNumber) $($errs[0].Message)"
+            }
+          }
+          if ($fail -gt 0) { exit 1 }
+          Write-Host "OK: pwsh parsed every script"
+
+      - name: Parse with Windows PowerShell 5.1
+        shell: powershell
+        run: |
+          $fail = 0
+          Get-ChildItem -Recurse -File -Include *.ps1,*.psm1,*.psd1 | ForEach-Object {
+            $errs = $null
+            [void][System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$null, [ref]$errs)
+            if ($errs.Count -gt 0) {
+              $fail++
+              Write-Host "::error file=$($_.FullName)::$($errs.Count) parse error(s) under 5.1; first: L$($errs[0].Extent.StartLineNumber) $($errs[0].Message)"
+            }
+          }
+          if ($fail -gt 0) { exit 1 }
+          Write-Host "OK: Windows PowerShell 5.1 parsed every script"
+
+      - name: Manifest template must be valid JSON
+        shell: pwsh
+        run: |
+          $p = 'config/config-manifest.template.json'
+          $j = Get-Content -LiteralPath $p -Raw -Encoding UTF8 | ConvertFrom-Json
+          foreach ($k in 'dshHome','vault','include','aclDeny','referenceTag') {
+            if (-not $j.PSObject.Properties[$k]) { Write-Host "::error file=$p::missing key '$k'"; exit 1 }
+          }
+          Write-Host "OK: template JSON has the required keys"
+
+      - name: Smoke test - deploy into a throw-away sandbox
+        shell: pwsh
+        run: |
+          $root  = Join-Path $env:RUNNER_TEMP 'smoke'
+          $vault = Join-Path $root 'vault'
+          $dshHome  = Join-Path $root 'home'
+          New-Item -ItemType Directory -Force -Path $vault, $dshHome | Out-Null
+          Copy-Item -Recurse -Force scripts, config -Destination $vault
+          # 造一个最小 dsh home
+          'x' | Set-Content (Join-Path $dshHome 'prompt-inject.md')
+          New-Item -ItemType Directory -Force -Path (Join-Path $dshHome '.agent-presets/unrestricted') | Out-Null
+          'managed-by: dsh-purge' | Set-Content (Join-Path $dshHome '.agent-presets/unrestricted/agent.cordis.yml')
+          '{"roles":[]}' | Set-Content (Join-Path $dshHome 'whale-roles/roles.json') -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Force -Path (Join-Path $dshHome 'whale-roles') | Out-Null
+          '{"roles":[]}' | Set-Content (Join-Path $dshHome 'whale-roles/roles.json')
+
+          & pwsh -NoProfile -File (Join-Path $vault 'scripts/deploy.ps1') -DshHome $dshHome -Vault $vault
+          if ($LASTEXITCODE -ne 0) { Write-Host '::error::deploy.ps1 failed in smoke test'; exit 1 }
+
+          # 模拟清空 → 恢复
+          Remove-Item -Force (Join-Path $dshHome 'prompt-inject.md')
+          & pwsh -NoProfile -File (Join-Path $vault 'scripts/restore.ps1') -Tag baseline -Force
+          if (-not (Test-Path (Join-Path $dshHome 'prompt-inject.md'))) {
+            Write-Host '::error::restore did not bring the file back'; exit 1
+          }
+          & pwsh -NoProfile -File (Join-Path $vault 'scripts/verify.ps1')
+          if ($LASTEXITCODE -ne 0) { Write-Host '::error::verify.ps1 reported FAIL after restore'; exit 1 }
+          Write-Host 'OK: wipe -> restore -> verify'

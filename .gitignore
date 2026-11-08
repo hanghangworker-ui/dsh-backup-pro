@@ -1,0 +1,28 @@
+# ---- 运行时生成，绝不入库 ----
+/config-manifest.json
+/snap/
+/state/
+*.log
+*.zip
+*.7z
+*.bak
+*.bak-*/
+scripts.bak*/
+
+# ---- 快照是配置内容副本，含真实配置与密钥，误提交很危险 ----
+snap/
+state/
+
+# ---- 编辑器/系统 ----
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.swp
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# ---- PowerShell 临时产物 ----
+*.tmp
+*.temp
+__pycache__/

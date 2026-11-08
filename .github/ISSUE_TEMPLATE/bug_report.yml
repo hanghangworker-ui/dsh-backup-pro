@@ -1,0 +1,57 @@
+name: Bug report
+description: 报告脚本报错、恢复失败、自检 FAIL 等问题
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢反馈。请**不要**贴真实的配置内容（`prompt-inject.md`、`agent.cordis.yml`、`package.json` 等），
+        用 `<占位符>` 替换；只贴命令与输出。
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: 发生了什么
+      description: 期望什么、实际什么。最好附上完整命令与输出。
+      placeholder: |
+        $ pwsh -NoProfile -File scripts/restore.ps1 -Tag baseline -Force
+        FAIL pre-restore snapshot failed -> restore BLOCKED
+    validations:
+      required: true
+  - type: dropdown
+    id: stage
+    attributes:
+      label: 出问题的环节
+      options:
+        - 部署 deploy.ps1
+        - 拍快照 snapshot.ps1
+        - 恢复 restore.ps1
+        - 闸门 purge-gate.ps1
+        - ACL acl.ps1
+        - 自检 verify.ps1
+        - 自验收 acceptance-r2.ps1
+        - 其它
+    validations:
+      required: true
+  - type: input
+    id: pwsh
+    attributes:
+      label: PowerShell 版本（`pwsh -v`）
+      placeholder: PowerShell 7.6.7
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Windows 版本
+      placeholder: Windows 11 26100 / Windows Server 2019
+  - type: textarea
+    id: verify
+    attributes:
+      label: verify.ps1 的 SUMMARY 与相关段落
+      description: 至少贴 `SUMMARY: x FAIL / y WARN (a expected, b unexpected)` 这一行，以及标 FAIL 的行。
+      render: text
+  - type: textarea
+    id: extra
+    attributes:
+      label: 其它上下文
+      description: 是否用过 dsh-purge-community？是否手工改过 config-manifest.json？是否在恢复前没关 dsh？
