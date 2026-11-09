@@ -37,11 +37,11 @@
       "versions": [
         {
           "version": "2.1.1",
-          "publishTimestamp": 1793000000,
+          "publishTimestamp": 1794208531,
           "source": {
             "type": "git",
             "url": "https://github.com/hanghangworker-ui/dsh-backup-pro",
-            "commit": "0000000000000000000000000000000000000000"
+            "commit": "e90dd296aea9b9c65ac9c5ec10416f36568443d5"
           },
           "engines": {
             "dsh": ">=0.2.1-rc.1 <0.3.0"
