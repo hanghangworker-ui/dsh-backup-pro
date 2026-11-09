@@ -140,10 +140,13 @@ try {
   $profPkg  = Join-Path $src 'profiles\web\package.json'
   $purgeVer = 'unknown'
   if (Test-Path -LiteralPath $profPkg) {
-    $deps = (Get-Content -LiteralPath $profPkg -Raw | ConvertFrom-Json).dependencies
-    # D2（2026-11-08）：空 dependencies（全新 dsh profile 常见）时，
-    # $deps.PSObject.Properties.Name 在 Set-StrictMode Latest 下会抛
-    # 「在此对象上找不到属性 Name」——先物化成数组再比较。
+    # D2（2026-11-08）：两种空情形都要容错 ——
+    #   ① dependencies 字段整体缺失（全新 profile 只写 bundles 时常见）
+    #   ② dependencies 存在但为空对象 {}
+    # 旧写法直接点 .dependencies / .PSObject.Properties.Name，在 Set-StrictMode Latest 下
+    # 会抛「在此对象上找不到属性」，导致快照直接失败。
+    $profObj = Get-Content -LiteralPath $profPkg -Raw | ConvertFrom-Json
+    $deps    = if ($profObj.PSObject.Properties['dependencies']) { $profObj.dependencies } else { $null }
     $depNames = if ($null -eq $deps) { @() } else { @($deps.PSObject.Properties | ForEach-Object { $_.Name }) }
     $purgeVer = if ($depNames -contains 'dsh-purge-community') { [string]$deps.'dsh-purge-community' } else { 'absent' }
   }

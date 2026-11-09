@@ -30,7 +30,11 @@ $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
 # ---- 【分发版】路径解析：不硬编码本机路径；缺省 = 本脚本所在目录的父目录（vault 根） ----
-if ([string]::IsNullOrWhiteSpace($Vault)) { $Vault = Split-Path -Parent $PSScriptRoot }
+if (-not [string]::IsNullOrWhiteSpace($Vault) -and [string]::IsNullOrWhiteSpace($ManifestPath)) { $ManifestPath = Join-Path $Vault 'config-manifest.json' }
+if ([string]::IsNullOrWhiteSpace($Vault)) {
+  # 没给 -Vault 时，优先从 -ManifestPath 推导（支持借用本包脚本、指向别处 vault 的用法）
+  $Vault = if (-not [string]::IsNullOrWhiteSpace($ManifestPath)) { Split-Path -Parent (Resolve-Path -LiteralPath $ManifestPath).Path } else { Split-Path -Parent $PSScriptRoot }
+}
 if ([string]::IsNullOrWhiteSpace($ManifestPath)) { $ManifestPath = Join-Path $Vault 'config-manifest.json' }
 
 . (Join-Path $PSScriptRoot 'vault-common.ps1')
@@ -83,7 +87,8 @@ foreach ($item in $cfg.include) {
 # ---- B. 最新快照一致性 ----
 Write-Host '--- B. snapshot freshness ---' -ForegroundColor Cyan
 $snapRoot = Join-Path $Vault 'snap'
-if (-not (Test-Path -LiteralPath $snapRoot)) { Fail 'no snapshot directory' }
+$selName = ''
+if (-not (Test-Path -LiteralPath $snapRoot)) { Fail ('no snapshot directory: {0}' -f $snapRoot) }
 else {
   # P1-1：默认对照 referenceTag（固化基准），不再「取最新快照」——
   # 否则任何「先改后拍」都会把漂移洗成基准（package.json 漂移就是这么发生的）。

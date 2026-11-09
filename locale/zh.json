@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "DSH 配置备份",
+    "description": "配置快照、恢复、ACL 拒写，以及 dsh 版本库——按 purge 的版本需求切换 dsh 版本。"
+  }
+}

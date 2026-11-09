@@ -1,0 +1,53 @@
+{
+  "format": 1,
+  "title": {
+    "en": "dsh-backup",
+    "zh": "dsh-backup 插件索引"
+  },
+  "description": {
+    "en": "Self-hosted plugin index for dsh-backup: configuration backup, per-version store of the dsh install, and a pre-write purge gate.",
+    "zh": "dsh-backup 自建插件索引：配置备份、dsh 本体多版本库、写前 purge 闸门。"
+  },
+  "metadata": {
+    "categories": {
+      "tools": {
+        "title": {
+          "en": "Tools & Capabilities",
+          "zh": "工具与能力"
+        }
+      }
+    }
+  },
+  "plugins": [
+    {
+      "name": "@hanghangworker-ui/dsh-backup-pro",
+      "title": "dsh-backup-pro",
+      "description": {
+        "en": "3-layer config protection (versioned snapshot/restore, fail-closed purge gate, ACL deny) plus a per-version store of the dsh installation with one-command switch, so a purge-incompatible dsh update can be rolled back. Host-only bundle, 7 tools.",
+        "zh": "三层配置保护（版本化快照/恢复、写前 fail-closed 闸门、ACL 拒绝）+ dsh 本体多版本库与一键切换，让不兼容 purge 的 dsh 升级可回退。Host-only bundle，7 个工具。"
+      },
+      "author": "hanghangworker-ui",
+      "homepage": "https://github.com/hanghangworker-ui/dsh-backup-pro",
+      "repository": {
+        "url": "https://github.com/hanghangworker-ui/dsh-backup-pro"
+      },
+      "metadata": {
+        "category": "tools"
+      },
+      "versions": [
+        {
+          "version": "2.1.1",
+          "publishTimestamp": 1793000000,
+          "source": {
+            "type": "git",
+            "url": "https://github.com/hanghangworker-ui/dsh-backup-pro",
+            "commit": "0000000000000000000000000000000000000000"
+          },
+          "engines": {
+            "dsh": ">=0.2.1-rc.1 <0.3.0"
+          }
+        }
+      ]
+    }
+  ]
+}

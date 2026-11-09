@@ -308,10 +308,10 @@ pwsh -NoProfile -File "D:\dsh-config-vault\scripts\acl.ps1" -Action Recover # �
 
 ## 11. 作为 GitHub 仓库维护
 
-这个目录本身就是仓库内容（`https://github.com/hanghangworker-ui/dsh-backup`），所以「部署」和「克隆」是同一步：
+这个目录本身就是仓库内容（`https://github.com/hanghangworker-ui/dsh-backup-pro`），所以「部署」和「克隆」是同一步：
 
 ```powershell
-git clone https://github.com/hanghangworker-ui/dsh-backup.git D:\dsh-config-vault
+git clone https://github.com/hanghangworker-ui/dsh-backup-pro.git D:\dsh-config-vault
 ```
 
 ### 11.1 目录约定
@@ -337,12 +337,12 @@ git clone https://github.com/hanghangworker-ui/dsh-backup.git D:\dsh-config-vaul
 ### 11.3 发布/更新流程
 
 ```powershell
-cd D:\dsh工作区\repo\dsh-backup
+cd D:\dsh工作区\repo\dsh-backup-pro
 pwsh -NoProfile -File scripts/verify.ps1          # 本地先自检，G 段会报编码/JSON
 git add -A
 git commit -m "feat: ..."
 git branch -M main
-git remote add origin https://github.com/hanghangworker-ui/dsh-backup.git   # 首次
+git remote add origin https://github.com/hanghangworker-ui/dsh-backup-pro.git   # 首次
 git push -u origin main
 ```
 
@@ -354,7 +354,7 @@ CI 会在 `windows-latest` 上跑：BOM 检查 → PowerShell 7 解析 → Windo
 - 语义化版本：脚本行为/参数变动 = minor 或 major，纯文档/文案 = patch。
 - 每次改逻辑都要在 `CHANGELOG.md` 写「为什么」，尤其是修缺陷（写清「不修会怎样」）。
 - 已发布缺陷示例：**D1**（配置被清空后 restore 被自己的安全快照挡住）、
-  **D2**（`dependencies` 为空时 `snapshot.ps1` 在 `Set-StrictMode` 下抛「找不到属性 Name」）——
+  **D2**（`dependencies` 为空、或 `dependencies` 字段整体缺失时，`snapshot.ps1` / `purge-gate.ps1` 在 `Set-StrictMode` 下抛「找不到属性 Name」；修法是先取对象再用 `PSObject.Properties['dependencies']` 判字段存在性）——
   两者都属于「最该工作的场景反而失败」，所以进了 CI 冒烟用例。
 
 ---
@@ -375,3 +375,47 @@ pwsh -NoProfile -File "$V\purge-gate.ps1" -DryRun
 pwsh -NoProfile -File "$V\acceptance-r2.ps1" -SkipRestore
 pwsh -NoProfile -File "$V\fix-bom.ps1"
 ```
+
+## 12. 作为 dsh 插件运行（可选）
+
+本仓库同时是一个 **Host-only bundle**，可被 dsh 直接安装，装好后宿主会多出 7 个 `dsh_backup_*` 工具。
+
+### 12.1 安装
+
+```text
+plugin_manager({ action: "install_bundle", target: "D:\\path\\to\\dsh-backup" })
+```
+
+不要手写 profile 的 `package.json` / `cordis.patch.yml`。装完确认：
+
+1. `profiles/<name>/package.json` 的 `dsh.profile.bundles` 出现 `@hanghangworker-ui/dsh-backup-pro`；
+2. `profiles/<name>/node_modules/@hanghangworker-ui/dsh-backup-pro` 存在；
+3. 工具列表出现 `dsh_backup_list_versions` 等 7 项。
+
+### 12.2 版本库与切换（适配 purge 的版本需求）
+
+```powershell
+# 1) 入库：meta 秒级（不可切换）；full 含 node_modules（可切换，体积大）
+pwsh -NoProfile -File scripts/version-store.ps1 -Action Save -Mode meta  -Vault D:\dsh-config-vault
+pwsh -NoProfile -File scripts/version-store.ps1 -Action Save -Mode full  -Vault D:\dsh-config-vault
+
+# 2) 校验
+pwsh -NoProfile -File scripts/version-store.ps1 -Action Verify -Vault D:\dsh-config-vault
+
+# 3) 切换（必须没有 dsh 在跑）
+pwsh -NoProfile -File scripts/switch-version.ps1 -Action Plan  -Version 0.2.1-rc.5 -Vault D:\dsh-config-vault
+pwsh -NoProfile -File scripts/switch-version.ps1 -Action Apply -Version 0.2.1-rc.5 -Vault D:\dsh-config-vault
+pwsh -NoProfile -File scripts/switch-version.ps1 -Action Rollback -Vault D:\dsh-config-vault
+```
+
+产物：`<vault>/versions/<ver>/{meta.json, core-manifest.txt, payload.zip}`；
+安装目录旁会留 `<install>.bak-<ts>`（回滚点）、`<install>.rollback-<ts>`、`<install>.failed-<ts>`。
+
+设计细节（存储字段、去重、切换五步与回滚、purge 版本适配、编码方案）见
+[plugin.zh-CN.md](plugin.zh-CN.md)。
+
+### 12.3 与既有三层的关系
+
+- 插件**不替代**任何一层：`snapshot/restore/acl/purge-gate/verify` 逻辑未被改写，插件只是调用方；
+- 版本库解决的是「dsh 本体版本」问题，三层解决的是「配置内容」问题，两者互不覆盖；
+- 切换 dsh 版本后仍应跑 `dsh_backup_config_check`，确认配置层没有被牵连。

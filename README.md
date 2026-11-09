@@ -1,4 +1,4 @@
-# dsh-backup
+# dsh-backup-pro
 
 **Snapshot · gate · lock — a three-layer configuration backup for [dsh](https://www.npmjs.com/package/@deepseek-ai/dsh).**
 If a plugin or an automated cleanup wipes your dsh config, one command puts it back.
@@ -6,7 +6,7 @@ If a plugin or an automated cleanup wipes your dsh config, one command puts it b
 [![PowerShell](https://img.shields.io/badge/PowerShell-7%2B-blue)](https://github.com/PowerShell/PowerShell)
 [![Platform](https://img.shields.io/badge/platform-Windows-lightgrey)](#requirements)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-[![CI](https://github.com/hanghangworker-ui/dsh-backup/actions/workflows/ci.yml/badge.svg)](https://github.com/hanghangworker-ui/dsh-backup/actions/workflows/ci.yml)
+[![CI](https://github.com/hanghangworker-ui/dsh-backup-pro/actions/workflows/ci.yml/badge.svg)](https://github.com/hanghangworker-ui/dsh-backup-pro/actions/workflows/ci.yml)
 
 > 中文速查见下方 [快速开始](#快速开始中文)，完整手册：[docs/guide.zh-CN.md](docs/guide.zh-CN.md)
 
@@ -40,7 +40,7 @@ layer 3  acl.ps1           icacls deny W/D/SYN           → the file cannot be 
 
 ```powershell
 # 1) clone as your vault (do NOT put it inside the dsh config directory)
-git clone https://github.com/hanghangworker-ui/dsh-backup.git D:\dsh-config-vault
+git clone https://github.com/hanghangworker-ui/dsh-backup-pro.git D:\dsh-config-vault
 
 # 2) one-shot deploy: probe config → write manifest → snapshot → seal → lock → self-check
 pwsh -NoProfile -File "D:\dsh-config-vault\scripts\deploy.ps1" `
@@ -63,7 +63,7 @@ pwsh -NoProfile -File "D:\dsh-config-vault\scripts\verify.ps1"                  
 ## 快速开始（中文）
 
 ```powershell
-git clone https://github.com/hanghangworker-ui/dsh-backup.git D:\dsh-config-vault
+git clone https://github.com/hanghangworker-ui/dsh-backup-pro.git D:\dsh-config-vault
 
 pwsh -NoProfile -File "D:\dsh-config-vault\scripts\deploy.ps1" `
      -DshHome "D:\dsh-home" `
@@ -99,16 +99,55 @@ pwsh -NoProfile -File "D:\dsh-config-vault\scripts\verify.ps1"                  
 | `verify.ps1` | — | ten-section self check, prints `SUMMARY: x FAIL / y WARN (a expected, b unexpected)` | `-Tag` `-Strict` |
 | `seal-baseline.ps1` | — | store the baseline digest outside the snapshot (defeats "edit first, snapshot later") | `-Tag baseline` `-Force` |
 | `acceptance-r2.ps1` | — | self-acceptance: fail-closed injection test + self-check | `-SkipRestore` (recommended) |
+| `version-store.ps1` | — | dsh version store: archive each installed version (`meta` = core manifest only, `full` = + payload.zip), verify integrity, prune | `-Action List\|Show\|Save\|Verify\|Prune\|Path` `-Mode meta\|full` `-Version` `-Source` |
+| `switch-version.ps1` | — | switch the dsh install to a stored version (idle check → rename → payload → re-check → auto rollback) | `-Action Status\|Plan\|Apply\|Rollback` `-Version` `-SkipIdleCheck` |
 | `fix-bom.ps1` | — | add UTF-8 BOM to `.ps1` files (idempotent) | `-Path` |
+
+## 作为 dsh 插件安装（Host-only bundle）
+
+本仓库同时是一个 **dsh bundle**：根目录有 `package.json`（`dsh.bundle.patch`）、`cordis.patch.yml`、
+`index.js`（导出 `apply/inject/name`）与 `locale/`、`icon.svg`，因此可以直接装进 dsh，
+装好后宿主会多出 7 个 `dsh_backup_*` 工具（不需要手写 profile 的 `package.json`）。
+
+- npm 包名：**`@hanghangworker-ui/dsh-backup-pro`**（仓库名 `dsh-backup-pro`，patch `id` 恒为 `dsh-backup`）
+- 版本：`2.1.1`；安装门槛：`engines.node >= 22`，`dsh >= 0.2.1-rc.1 < 0.3.0`
+
+```text
+plugin_manager({ action: "install_bundle", target: "D:\\path\\to\\dsh-backup" })
+```
+
+装完检查两处：profile `profiles/<name>/package.json` 的 `dsh.profile.bundles` 里出现 `@hanghangworker-ui/dsh-backup-pro`，
+且 `node_modules/@hanghangworker-ui/dsh-backup-pro` 存在（位置由宿主决定）。
+
+| Tool | What it does |
+|---|---|
+| `dsh_backup_list_versions` | 列出已存版本 + 当前安装版本（只读） |
+| `dsh_backup_save_version` | 把当前 dsh 安装存进版本库（`meta` 秒级 / `full` 含 payload，可切换） |
+| `dsh_backup_verify_store` | 校验版本库完整性（清单指纹 + payload SHA256） |
+| `dsh_backup_switch_version` | `status/plan/apply/rollback`；`apply`、`rollback` 需 `confirm=true`，切换前查是否有 dsh 进程在跑 |
+| `dsh_backup_snapshot` | 对配置目录拍受保护快照（临时解锁 → 复制 → 重新加锁） |
+| `dsh_backup_config_check` | 十段式体检（`verify.ps1 -Strict`） |
+| `dsh_backup_purge_gate` | purge 前闸门（默认 dry-run，四段指纹） |
+
+插件侧的 vault 根目录解析顺序：`config.vault` → 环境变量 `DSH_BACKUP_VAULT` → 插件包目录。
+dsh 安装目录解析顺序：`config.install` → `DSH_BACKUP_DSH_INSTALL` → `%APPDATA%\npm\node_modules\@deepseek-ai\dsh`。
+插件只调用 `pwsh`，因此仍需 PowerShell 7 在 PATH（可用 `DSH_BACKUP_PWSH` 指绝对路径）。
+设计与取舍见 [docs/plugin.zh-CN.md](docs/plugin.zh-CN.md)。
 
 ## Repository layout
 
 ```
-dsh-backup/
+dsh-backup-pro/
+├─ index.js            bundle entry: export { apply, inject, name }
+├─ lib/                plugin.js (register tools) · tools.js (7 tools) · ps.js (pwsh + UTF-8 channel)
+├─ cordis.patch.yml    bundle patch (- insert: id dsh-backup)
+├─ locale/{en,zh}.json meta.title / meta.description
+├─ icon.svg
 ├─ scripts/            PowerShell 7 tooling (UTF-8 + BOM)
 ├─ config/             config-manifest.template.json
 ├─ docs/
 │  ├─ guide.zh-CN.md              full manual (deploy / baseline / restore / verify / gaps)
+│  ├─ plugin.zh-CN.md             plugin design: version store, switching, purge fit, encoding
 │  └─ reusability-report.zh-CN.md what was reused from the source vault and why
 ├─ .github/workflows/ci.yml       BOM + parse check on windows-latest
 ├─ CHANGELOG.md
@@ -144,3 +183,17 @@ and make sure `pwsh -NoProfile -File scripts/verify.ps1` still reports `0 FAIL` 
 ## License
 
 [MIT](LICENSE) © 2026 hanghangworker-ui
+
+**配置项**（bundle config 或环境变量）：
+
+| 键 | 环境变量 | 默认 | 用途 |
+|---|---|---|---|
+| `vault` | `DSH_BACKUP_VAULT` | 插件包根目录 | config-manifest/snap/state/versions 所在目录 |
+| `install` | `DSH_BACKUP_DSH_INSTALL` | `%APPDATA%\npm\node_modules\@deepseek-ai\dsh` | dsh 安装目录（版本库/切换的目标） |
+| `dshHome` | `DSH_BACKUP_DSH_HOME` / `DSH_HOME` | 未设置 | 用于探测 `dsh-purge-community` 的版本适配声明 |
+
+`dsh_backup_list_versions` 会打印 `purgeCompat=compatible|unknown`——依据是 purge 包 `dsh.compatibility`
+的 `dshReleases` 表（purge 1.6.84 的 `peerDependencies` 只声明 cordis，不含 dsh）。
+
+本机实测：`0.2.1-rc.5` full 模式 payload `213.2 MB`，耗时约 `5.0 分钟`。
+

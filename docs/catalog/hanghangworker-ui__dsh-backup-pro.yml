@@ -1,0 +1,6 @@
+url: https://github.com/hanghangworker-ui/dsh-backup-pro
+name: hanghangworker-ui/dsh-backup-pro
+category: tools
+description:
+  en: Configuration backup with versioned snapshots and one-command restore, a per-version store of the dsh installation you can switch back to, and a fail-closed pre-write gate that keeps dsh-purge from overwriting config.
+  zh: 配置备份（版本化快照 + 一条命令恢复）、dsh 安装本体多版本库（可切回旧版本以适配 purge）、以及写前 fail-closed 闸门，防 dsh-purge 覆盖配置。

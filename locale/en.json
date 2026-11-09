@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "DSH Backup",
+    "description": "Configuration snapshots, restore, ACL deny and a dsh version store — switch dsh versions to match purge requirements."
+  }
+}

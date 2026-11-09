@@ -64,8 +64,9 @@ $dshVer = (Get-Content -LiteralPath $dshPkg -Raw | ConvertFrom-Json).version
 $profPkg  = Join-Path $cfg.dshHome 'profiles\web\package.json'
 $purgeVer = 'unknown'
 if (Test-Path -LiteralPath $profPkg) {
-  $deps = (Get-Content -LiteralPath $profPkg -Raw | ConvertFrom-Json).dependencies
-  # D2（2026-11-08）：空 dependencies 时 .PSObject.Properties.Name 在 StrictMode 下抛错，先物化数组
+  # D2（2026-11-08）：dependencies 缺失或为空对象都不能抛错（StrictMode 下直接点属性会抛）
+  $profObj = Get-Content -LiteralPath $profPkg -Raw | ConvertFrom-Json
+  $deps    = if ($profObj.PSObject.Properties['dependencies']) { $profObj.dependencies } else { $null }
   $depNames = if ($null -eq $deps) { @() } else { @($deps.PSObject.Properties | ForEach-Object { $_.Name }) }
   if ($depNames -contains 'dsh-purge-community') { $purgeVer = [string]$deps.'dsh-purge-community' }
 }

@@ -68,7 +68,7 @@
 | E1 | `verify.ps1` | F 项 `Fail` → `Warn`；新增 `gate-unused` / `optional-asset` 两个 expected 键 | 客户机全新部署时缺本机调研产物，不应算失败 |
 
 > D1 只加在分发包里，母版 `D:\dsh-config-vault` 未改动（本任务约束：只提取不改造）。若母版也要修，把这两处 diff 搬回去即可。
-| D2 | `snapshot.ps1` / `purge-gate.ps1` | 空 `dependencies` 时不再点 `.PSObject.Properties.Name`，改为先物化数组再比较 | **母版缺陷**：`profiles/web/package.json` 的 `dependencies` 为空（全新 dsh profile 常见）时，`Set-StrictMode -Version Latest` 下 `.PSObject.Properties.Name` 抛「在此对象上找不到属性“Name”」，`snapshot.ps1` 直接失败、`purge-gate.ps1` 同样失败。已同步修进母版 |
+| D2 | `snapshot.ps1` / `purge-gate.ps1` | 空 `dependencies` 时不再点 `.PSObject.Properties.Name`，改为先取对象、用 `PSObject.Properties['dependencies']` 判字段存在性，再 `@(... | ForEach-Object { $_.Name })` 物化比较（覆盖「字段缺失」与「空对象」两种情形） | **母版缺陷**：`profiles/web/package.json` 的 `dependencies` 为空（全新 dsh profile 常见）时，`Set-StrictMode -Version Latest` 下 `.PSObject.Properties.Name` 抛「在此对象上找不到属性“Name”」，`snapshot.ps1` 直接失败、`purge-gate.ps1` 同样失败。已同步修进母版 |
 | E2 | `verify.ps1` | C 段区分「层3 整体未启用」（`WARN`，键 `acl-off`）与「层3 部分失效」（`FAIL`） | 层3 是可选层：没上锁不该算失败，但一半锁住一半没锁是真故障。母版已同步 |
 
 ## 五、仓库化（2026-11-08，目标 GitHub）

@@ -1,0 +1,32 @@
+{
+  "name": "@hanghangworker-ui/dsh-backup-pro",
+  "version": "2.1.1",
+  "description": "Configuration backup, dsh version store and purge gate for DeepSeek Harness (host-only bundle).",
+  "private": false,
+  "type": "module",
+  "license": "MIT",
+  "author": "hanghangworker-ui",
+  "homepage": "https://github.com/hanghangworker-ui/dsh-backup-pro#readme",
+  "repository": { "type": "git", "url": "git+https://github.com/hanghangworker-ui/dsh-backup-pro.git" },
+  "keywords": ["dsh", "dsh-plugin", "backup", "snapshot", "restore", "version-store"],
+  "icon": "./icon.svg",
+  "exports": {
+    ".": "./index.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
+  "files": [
+    "index.js",
+    "lib/",
+    "scripts/",
+    "cordis.patch.yml",
+    "locale/*.json",
+    "icon.svg",
+    "README.md",
+    "docs/"
+  ],
+  "dsh": {
+    "bundle": { "patch": "./cordis.patch.yml" }
+  },
+  "engines": { "node": ">=22" }
+}

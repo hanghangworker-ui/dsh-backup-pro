@@ -1,0 +1,3 @@
+- insert:
+    - id: dsh-backup
+      name: '@hanghangworker-ui/dsh-backup-pro'
