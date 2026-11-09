@@ -1,6 +1,7 @@
+# awesome-dsh-plugin 目录条目（PR 时提交到 data/plugins/ 下）
 url: https://github.com/hanghangworker-ui/dsh-backup-pro
 name: hanghangworker-ui/dsh-backup-pro
 category: tools
 description:
-  en: Configuration backup with versioned snapshots and one-command restore, a per-version store of the dsh installation you can switch back to, and a fail-closed pre-write gate that keeps dsh-purge from overwriting config.
-  zh: 配置备份（版本化快照 + 一条命令恢复）、dsh 安装本体多版本库（可切回旧版本以适配 purge）、以及写前 fail-closed 闸门，防 dsh-purge 覆盖配置。
+  en: For people who edit DSH config often and fear a plugin overwriting it - writes are intercepted first, a deleted file comes back with one command, and every dsh install version is archived so a purge-incompatible upgrade can be rolled back. Local only.
+  zh: 适合常改 DSH 配置、又担心被插件覆盖的人：写入前先拦截，误删一条命令恢复；dsh 本体按版本入库，与 purge 不兼容可切回旧版。纯本地运行，无外部服务。
